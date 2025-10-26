@@ -42,23 +42,22 @@ The project was executed in a Jupyter Notebook (`.ipynb`) and followed these key
 The model successfully identified 4 distinct customer personas based on their RFM scores:
 
 * **Cluster 0: 🏆 VIP / Loyal Customers**
-    * *(R: Thấp, F: Cao, M: Cao)* - High-value, frequent buyers who purchased recently.
+    * *(R: Low, F: High, M: High)* - High-value, frequent buyers who purchased recently.
     * **Action:** Reward with loyalty programs, exclusive access, and seek feedback.
 
 * **Cluster 3: ✨ New / Potential Customers**
-    * *(R: Thấp, F: Thấp, M: Thấp)* - New customers who purchased recently but with low frequency.
+    * *(R: Low, F: Low, M: Low)* - New customers who purchased recently but with low frequency.
     * **Action:** Nurture with welcome emails, onboarding, and incentives for a second purchase.
 
 * **Cluster 2: ⚠️ At-Risk Customers**
-    * *(R: Cao, F: Trung bình, M: Trung bình)* - Good customers who *used* to buy, but haven't returned in a long time.
+    * *(R: High, F: Medium, M: Medium)* - Good customers who *used* to buy, but haven't returned in a long time.
     * **Action:** Target with "We miss you!" win-back campaigns and strong discounts.
 
 * **Cluster 1: 💤 Lost / Inactive Customers**
-    * *(R: Rất cao, F: Thấp, M: Thấp)* - Customers who purchased once long ago and never returned.
-    * **Action:** Low-cost re-engagement (e.g., general newsletter). Do not spend high marketing budget here.
+    * *(R: Very High, F: Low, M: Low)* - Customers who purchased once long ago and never returned.
+    * **Action:** Low-cost re-engagement (e.g., general newsletter). Do not spend a high marketing budget here.
 
 
-*(Bạn nên chụp ảnh biểu đồ pairplot cuối cùng và chèn vào đây)*
 
 ## 5. Technologies Used 💻
 
