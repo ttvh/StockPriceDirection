@@ -3,8 +3,8 @@
 This project builds a complete machine learning pipeline to predict the short-term price direction (Up/Down) of the MSN stock ticker. The goal is to classify whether the price will rise or fall in the next 2-minute interval.
 
 This notebook demonstrates a full data science workflow:
-1.  **Data Ingestion & Cleaning:** Loading and preparing raw 15-minute data.
-2.  **Resampling & Feature Engineering:** Converting the data to a 2-minute frequency and creating over 20 technical indicators.
+1.  **Data Ingestion & Cleaning:** Loading and preparing raw, high-frequency OHLCV data.
+2.  **Resampling & Feature Engineering:** Converting the raw data to a 2-minute frequency and creating over 20 technical indicators.
 3.  **Modeling:** Training and comparing three different classification models (Logistic Regression, Random Forest, LSTM).
 4.  **Handling Imbalance:** Solving a critical class imbalance problem to create a useful model.
 5.  **Evaluation:** Analyzing model performance not just on **Accuracy**, but on **Precision** and **Recall** to determine real-world effectiveness.
@@ -14,13 +14,13 @@ This notebook demonstrates a full data science workflow:
 ## 1. Data Pipeline
 
 ### a. Data Loading
-The project starts with a raw 15-minute OHLCV (Open, High, Low, Close, Volume) dataset for the MSN ticker.
+The project starts with a raw OHLCV (Open, High, Low, Close, Volume) dataset for the MSN ticker (`MSN.csv`).
 
-* **Raw Data Profile:** The initial dataset contains **135,354** entries. The `Date/Time` column is an `object` type and requires conversion.
+* **Raw Data Profile:** The initial dataset contains **135,354** entries. The `Date/Time` column is converted from `object` to a `datetime` index.
 
 ### b. Resampling & Cleaning
-To generate a larger dataset suitable for high-frequency prediction, the data is processed as follows:
-1.  **Resample:** The 15-minute data is resampled to a 2-minute frequency (`resample('2min')`).
+To generate a dataset suitable for high-frequency prediction, the data is processed as follows:
+1.  **Resample:** The raw data is resampled to a 2-minute frequency (`resample('2min')`).
 2.  **Clean:** All `NaN` rows (from non-trading times) and all intervals with `Volume = 0` are dropped, resulting in a clean dataset of active trading periods.
 
 ### c. Feature Engineering
