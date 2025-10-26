@@ -1,69 +1,84 @@
-# Customer Segmentation with RFM & K-Means Clustering
+# Short-Term Stock Price Direction Prediction (MSN Ticker)
 
-## 1. Project Overview 🎯
+This project builds a complete machine learning pipeline to predict the short-term price direction (Up/Down) of the MSN stock ticker. The goal is to classify whether the price will rise or fall in the next 2-minute interval.
 
-This project analyzes a transactional dataset from an online retailer to perform customer segmentation. The goal is to identify distinct customer groups based on their purchasing behavior using the **RFM (Recency, Frequency, Monetary)** model and the **K-Means clustering** algorithm. By understanding these segments, we can provide actionable insights for targeted marketing strategies.
+This notebook demonstrates a full data science workflow:
+1.  **Data Ingestion & Cleaning:** Loading and preparing raw 15-minute data.
+2.  **Resampling & Feature Engineering:** Converting the data to a 2-minute frequency and creating over 20 technical indicators.
+3.  **Modeling:** Training and comparing three different classification models (Logistic Regression, Random Forest, LSTM).
+4.  **Handling Imbalance:** Solving a critical class imbalance problem to create a useful model.
+5.  **Evaluation:** Analyzing model performance not just on **Accuracy**, but on **Precision** and **Recall** to determine real-world effectiveness.
 
-## 2. Dataset 📦
+---
 
-The data is the "Online Retail II" dataset, which contains over 1 million transactions from a UK-based online retailer.
+## 1. Data Pipeline
 
-* **Source:** UCI Machine Learning Repository / Kaggle
-* **Time Period:** 2010-2011
-* **Key Attributes:** `InvoiceNo`, `StockCode`, `Quantity`, `InvoiceDate`, `UnitPrice`, `CustomerID`, `Country`.
+### a. Data Loading
+The project starts with a raw 15-minute OHLCV (Open, High, Low, Close, Volume) dataset for the MSN ticker.
 
-## 3. Methodology / Workflow ⚙️
+* **Raw Data Profile:** The initial dataset contains **135,354** entries. The `Date/Time` column is an `object` type and requires conversion.
 
-The project was executed in a Jupyter Notebook (`.ipynb`) and followed these key steps:
+### b. Resampling & Cleaning
+To generate a larger dataset suitable for high-frequency prediction, the data is processed as follows:
+1.  **Resample:** The 15-minute data is resampled to a 2-minute frequency (`resample('2min')`).
+2.  **Clean:** All `NaN` rows (from non-trading times) and all intervals with `Volume = 0` are dropped, resulting in a clean dataset of active trading periods.
 
-1.  **Data Cleaning & Preprocessing:**
-    * Loaded 1M+ raw transaction records.
-    * Handled missing `CustomerID` values (dropped).
-    * Removed negative `Quantity` (returns) and zero-price items.
-    * Converted `InvoiceDate` to datetime objects.
+### c. Feature Engineering
+A set of ~20 features was engineered to provide market context for the models:
 
-2.  **Feature Engineering (RFM):**
-    * Calculated three key metrics for each of the 5,800+ unique customers:
-        * **Recency (R):** Days since the last purchase.
-        * **Frequency (F):** Total number of unique invoices.
-        * **Monetary (M):** Total monetary value of purchases.
+* **Target Variable (`Target_Direction`):** The core prediction goal.
+    * **1 (Up):** If the `Close` price 2 minutes from now is > current `Close` price.
+    * **0 (Down):** If the `Close` price 2 minutes from now is $\le$ current `Close` price.
+* **Price Lags/Momentum:** `Close_Lag` and `Pct_Change` for 1, 2, 3, 5, and 10 previous steps (2-20 minutes).
+* **Technical Indicators (using `ta` library):**
+    * **Trend:** `SMA` (10, 50), `MACD_diff`
+    * **Momentum:** `RSI` (14)
+    * **Volatility:** `BollingerBands (%B)`, `ATR` (14)
+* **Volume Features:** `Volume_SMA_20`, `Volume_Pct_Change`
 
-3.  **Data Scaling & Transformation:**
-    * Applied **Log Transformation** (`np.log1p`) to normalize the heavily right-skewed RFM data.
-    * Used **StandardScaler** (Z-score) to scale all features to a common range, making them suitable for K-Means.
+### d. Model Preparation
+1.  **Train-Test Split:** Data is split 80% (Train) / 20% (Test) using `shuffle=False` to respect the time-series nature of the data.
+2.  **Scaling:** All features are scaled using `MinMaxScaler`.
+3.  **Handling Class Imbalance:** The target variable was highly imbalanced (e.g., ~72% "Down" vs. 28% "Up"). This was solved by applying `class_weight='balanced'` to all models, forcing them to pay more attention to the minority "Up" class.
 
-4.  **Modeling (K-Means Clustering):**
-    * Used the **Elbow Method** to determine the optimal number of clusters (K).
-    * Selected **K=4** as the optimal value.
-    * Trained the K-Means model on the scaled data and assigned each customer to one of the 4 clusters.
+---
 
-## 4. Key Findings & Analysis 📈
+## 2. Model Training & Results
 
-The model successfully identified 4 distinct customer personas based on their RFM scores:
+Three distinct models were trained and evaluated on the unseen test set.
 
-* **Cluster 0: 🏆 VIP / Loyal Customers**
-    * *(R: Low, F: High, M: High)* - High-value, frequent buyers who purchased recently.
-    * **Action:** Reward with loyalty programs, exclusive access, and seek feedback.
+### a. Logistic Regression (Baseline)
+* **Accuracy:** 61.17%
+* **Precision (Up):** 0.40
+* **Recall (Up):** 0.79
+* **Analysis:** This simple model served as a baseline. While its overall accuracy was modest, it was surprisingly effective at identifying "Up" movements, correctly catching 79% of all "Up" signals.
 
-* **Cluster 3: ✨ New / Potential Customers**
-    * *(R: Low, F: Low, M: Low)* - New customers who purchased recently but with low frequency.
-    * **Action:** Nurture with welcome emails, onboarding, and incentives for a second purchase.
+### b. Random Forest (Tuned)
+* **Tuning:** `GridSearchCV` was used to find the best hyperparameters.
+* **Best Params:** `{'max_depth': None, 'min_samples_leaf': 1, 'n_estimators': 100}`
+* **Accuracy:** 71.74%
+* **Precision (Up):** 0.47
+* **Recall (Up):** 0.04
+* **Analysis:** This model achieved the **highest accuracy**, but this result is **highly misleading**. A Recall of only 4% for the "Up" class means the model almost *never* predicted a price increase. Its high accuracy came from simply guessing the majority "Down" class, making it useless for practical trading.
 
-* **Cluster 2: ⚠️ At-Risk Customers**
-    * *(R: High, F: Medium, M: Medium)* - Good customers who *used* to buy, but haven't returned in a long time.
-    * **Action:** Target with "We miss you!" win-back campaigns and strong discounts.
+### c. LSTM (Deep Learning)
+* **Accuracy:** 58.52%
+* **Precision (Up):** 0.33
+* **Recall (Up):** 0.47
+* **Analysis:** The LSTM had the lowest accuracy but was the **most balanced model**. It demonstrated a genuine (though limited) ability to identify both "Down" (63% Recall) and "Up" (47% Recall) movements, unlike the Random Forest which "cheated" by ignoring the minority class.
 
-* **Cluster 1: 💤 Lost / Inactive Customers**
-    * *(R: Very High, F: Low, M: Low)* - Customers who purchased once long ago and never returned.
-    * **Action:** Low-cost re-engagement (e.g., general newsletter). Do not spend a high marketing budget here.
+---
 
+## 3. Conclusion
 
+1.  **Accuracy is Misleading:** This project clearly shows that `Accuracy` is a poor metric for imbalanced financial data. The 71.74% accurate Random Forest was the worst-performing model in practice.
+2.  **The "Noise" Problem:** Predicting 2-minute price movements is an extremely "noisy" task. The models struggled to find strong, consistent signals.
+3.  **Balanced Models:** The `Logistic Regression` and `LSTM` models, which were forced to handle class imbalance, provided more realistic and balanced (though less accurate) results. The `Logistic Regression` model showed the most promise for identifying "Up" signals.
 
-## 5. Technologies Used 💻
-
-* **Python**
-* **Pandas** (Data manipulation and cleaning)
-* **NumPy** (Numerical operations)
-* **Scikit-learn (sklearn)** (StandardScaler, KMeans)
-* **Matplotlib & Seaborn** (Data visualization)
-* **Jupyter Notebook** (Project environment)
+## 4. Technologies Used
+* Python
+* Pandas & NumPy
+* Scikit-learn (LogisticRegression, RandomForestClassifier, GridSearchCV, MinMaxScaler, metrics)
+* TensorFlow (Keras) (Sequential, LSTM, Dropout)
+* `ta` (Technical Analysis library)
+* Matplotlib & Seaborn
